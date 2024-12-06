@@ -1,0 +1,118 @@
+---
+title: "Class 10: Structural Bioinformatics"
+author: "Emily Hendrickson (PID: A69034780)"
+format: pdf
+---
+
+
+```{r}
+pdbstats <- read.csv("Data_Export_Summary.csv")
+x <- pdbstats$Total
+as.numeric(x)
+
+# Read the CSV file
+data <- read.csv("Data_Export_Summary.csv", stringsAsFactors = FALSE)
+
+# Remove commas within each value
+data <- as.data.frame(lapply(data, function(x) gsub(",", "", x)))
+
+# Convert only specific columns to numeric (replace with your column names or indices)
+# For example, if columns 2 and 3 are numeric
+data[, c(2:8)] <- lapply(data[,c(2:8)], as.numeric)
+
+# Check the cleaned data
+print(data)
+```
+
+```{r}
+library(readr)
+pdbstats <- read_csv("Data_Export_Summary.csv")
+pdbstats
+```
+
+
+**Q1: What percentage of structures in the PDB are solved by X-Ray and Electron Microscopy.** 
+
+```{r}
+xray <-  sum(data$X.ray) / sum(data$Total) * 100
+xray
+EM <-  sum(data$EM) / sum(data$Total) * 100
+EM
+```
+
+**Q2: What proportion of structures in the PDB are protein?**
+
+```{r}
+sum(pdbstats[1:3,8]) / sum(data$Total) * 100
+```
+
+**Q3: Type HIV in the PDB website search box on the home page and determine how many HIV-1 protease structures are in the current PDB?**
+
+4,563
+
+
+#Using Mol*
+
+![My first image from Mol-star](1HSG.png)
+
+
+![](1HSG_chunky.png)
+
+![Water](1HSG_water.png)
+
+pdb <- read.pdb("1hsg")
+```{r}
+library(bio3d)
+pdb <- read.pdb("1hsg")
+pdb
+
+```
+
+**Q7: How many amino acid residues are there in this pdb object?**
+
+**Q8: Name one of the two non-protein residues?**
+
+**Q9: How many protein chains are in this structure?**
+
+```{r}
+attributes(pdb)
+```
+
+
+```{r}
+head(pdb$atom)
+```
+
+**Predicting functional motions of a single structure
+
+```{r}
+adk <- read.pdb("6s36")
+adk
+```
+
+Performing flexibility prediction
+
+```{r}
+#source("https://tinyurl.com/viewpdb")
+#install.packages("r3dmol")
+#library(r3dmol)
+
+#view.pdb(pdb,backgroundColor = "white")
+
+```
+
+```{r}
+#view.pdb(adk, backgroundColor = "white")
+```
+
+
+```{r}
+modes <- nma(adk)
+plot(modes)
+```
+
+```{r}
+
+mktrj(modes, pdb = adk, file="adk_m7.pdb")
+```
+

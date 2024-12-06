@@ -1,0 +1,182 @@
+---
+title: "Class 14: RNASeq Mini Project"
+author: "Emily Hendrickson (PID: A69034780)"
+format: pdf
+---
+
+##Import data
+
+Counts Metadata
+
+```{r}
+counts <- read.csv("GSE37704_featurecounts.csv", row.names = 1)
+metadata <- read.csv("GSE37704_metadata.csv")
+```
+
+##Data cleanup
+
+```{r}
+
+head(counts)
+
+head(metadata)
+
+```
+
+The columns in the count file should match the rows in metadata. We have to remove the lengths column.
+
+```{r}
+countData <- counts[,-1]
+head(countData)
+```
+
+Check that metadata matches count data.
+
+```{r}
+
+#| label: Checking metadata = count
+
+all(colnames(countData) == metadata$id)
+```
+
+###Filter out zero counts
+
+```{r}
+tp.keep.inds <- rowSums(countData) > 0
+cleanCounts <- countData[tp.keep.inds,]
+head(cleanCounts)
+```
+
+##Setup DESeq object
+
+```{r}
+#|message: false
+library(DESeq2) 
+```
+
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = countData,
+                              colData = metadata,
+                              design = ~condition)
+```   
+
+```{r}
+dds <- DESeq(dds)
+res <- results(dds)
+```
+
+##Inspect results
+
+```{r}
+head(res)
+```
+
+```{r}
+plot(res$log2FoldChange, -log(res$padj))
+```
+
+
+##Pathway Analysis
+
+Annotate genes in data, mapping to SYMBOL, ENTREZID, GENENAME
+
+```{r}
+library(AnnotationDbi)
+library(org.Hs.eg.db)
+
+res$symbol <- mapIds(org.Hs.eg.db,
+                     keys = row.names(res),
+                     keytype = "ENSEMBL",
+                     column = "SYMBOL",
+                     multiVals = "first")
+
+res$genename <- mapIds(org.Hs.eg.db, 
+                       keys = row.names(res),
+                       keytype = "ENSEMBL",
+                       column = "GENENAME",
+                       multiVals = "first")
+
+res$entrezid <- mapIds(org.Hs.eg.db,
+                       keys = row.names(res),
+                       keytype = "ENSEMBL",
+                       column = "ENTREZID",
+                       multiVals = "first")
+
+head(res)
+```
+
+
+
+Pull out "top" hits with adjusted p-value < 0.05 and log2FoldChange < 2
+
+```{r}
+top.inds <- (abs(res$log2FoldChange) > 2) & (abs(res$padj) < 0.05)
+
+top.inds[is.na(top.inds)] <- FALSE
+
+top.genes <- res[top.inds,]
+write.csv(top.genes, file = "top_geneset.csv")
+head(top.genes)
+```
+
+Now we can start the analysis
+
+```{r}
+
+#|message: false
+
+library(pathview)
+library(gage)
+library(gageData)
+
+data(kegg.sets.hs)
+data(sigmet.idx.hs)
+
+kegg.sets.hs = kegg.sets.hs[sigmet.idx.hs]
+
+
+```
+
+*gage* input is a vector of imortance with gene names as labels. KEGG uses entrez
+
+```{r}
+foldchanges <- res$log2FoldChange
+names(foldchanges) <- res$entrezid
+head(foldchanges)
+```
+
+```{r}
+keggres <- gage(foldchanges, gsets = kegg.sets.hs)
+
+attributes(keggres)
+
+head(keggres$less)
+```
+
+```{r}
+pathview(foldchanges, pathway.id = "hsa04110")
+```
+
+Biological processes subset of GO
+
+```{r}
+data(go.sets.hs)
+data(go.subs.hs)
+
+gobpsets = go.sets.hs[go.subs.hs$BP]
+
+gores = gage(foldchanges, gsets=gobpsets, same.dir=TRUE)
+
+head(gores$less)
+head(gores$greater)
+```
+
+```{r}
+sig_genes <- res[res$padj <= 0.05 & !is.na(res$padj), "symbol"]
+print(paste("Total number of significant genes:", length(sig_genes)))
+
+write.table(sig_genes, file="significant_genes.txt", row.names=FALSE, col.names=FALSE, quote=FALSE)
+
+```
+
+![Figure from reactome - translation](R-HSA-72613.png)

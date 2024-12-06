@@ -1,0 +1,187 @@
+---
+title: "Structural Bioinformatics pt 2"
+author: "Emily Hendrickson (PID: A69034780)"
+format: pdf
+---
+
+First, finish last week's stuff.
+
+```{r}
+library(bio3d)
+id <- "1ake_A"
+aa <- get.seq(id)
+aa
+```
+
+```{r}
+b <- blast.pdb(aa)
+
+hits <- plot(b)
+```
+
+```{r}
+files <- get.pdb(hits$pdb.id, path = "pdbs", split = TRUE, gzip = TRUE)
+```
+
+I have now downloaded the all the ADK structures in the PDB database but viewing them is challenging. They need to be aligned and superposed. I already had BiocManager installed and installed the pdbaln package using BiocManager::install()
+
+```{r}
+pdbs <- pdbaln(files, fit = TRUE, exefile="msa")
+```
+
+##Principal Component Analysis
+
+```{r}
+pc <- pca(pdbs)
+plot(pc)
+```
+
+```{r}
+plot(pc, pc.axes = c(1:2))
+```
+
+visualize the structural components of the variation in xray structures that is described by PC1.
+
+```{r}
+pc1 <- mktrj(pc, pc=1, file="pc_1.pdb")
+```
+
+
+**AlphaFold**
+
+I used the predicted protein sequence from my find a gene project.
+
+![My predicted protein structures with the reference actin PDB structure ](TEST_3910F_UNRELAXED_RANK_005_ALPHAFOLD2_PTM_MODEL_2_SEED_000.PDB-TEST_3910F_UNRELAXED_RANK_003_ALPHAFOLD2_PTM_MODEL_5_SEED_000.PDB-TEST_3910F_UNRELAXED_RANK_001_ALPHAFOLD2_PTM_MODEL_4_SEED_000.PDB-TEST_3910F_UNRELAXED_RANK_002_ALPHAFOLD2_P.png)
+
+```{r}
+results_dir <- "test_3910f/"
+pdb_files <- list.files(path=results_dir,
+                        pattern="*.pdb",
+                        full.names = TRUE)
+basename(pdb_files)
+```
+
+```{r}
+library(bio3d)
+pdbs <- pdbaln(pdb_files, fit=TRUE, exefile="msa")
+```
+
+```{r}
+pdbs
+```
+
+```{r}
+rd <- rmsd(pdbs, fit=T)
+range(rd)
+
+library(pheatmap)
+
+colnames(rd) <- paste0("m",1:5)
+rownames(rd) <- paste0("m",1:5)
+pheatmap(rd)
+```
+
+```{r}
+pdb <- read.pdb("1j6z")
+plotb3(pdbs$b[1,], typ="l", lwd=2, sse=pdb)
+points(pdbs$b[2,], typ="l", col="red")
+points(pdbs$b[3,], typ="l", col="blue")
+points(pdbs$b[4,], typ="l", col="darkgreen")
+points(pdbs$b[5,], typ="l", col="orange")
+abline(v=100, col="gray")
+```
+
+```{r}
+core <- core.find(pdbs)
+core.inds <- print(core, vol=0.5)
+xyz <- pdbfit(pdbs, core.inds, outpath="corefit_structures")
+```
+
+
+![Core superposed structures colored by B-factor](TEST_3910F_UNRELAXED_RANK_005_ALPHAFOLD2_PTM_MODEL_2_SEED_000.PDB_FLSQ.PDB-TEST_3910F_UNRELAXED_RANK_004_ALPHAFOLD2_PTM_MODEL_3_SEED_000.PDB_FLSQ.PDB-TEST_3910F_UNRELAXED_RANK_003_ALPHAFOLD2_PTM_MODEL_5_SEED_000.PDB_FLSQ.PDB-TEST_3910F_UNRE.png)
+
+```{r}
+rf <- rmsf(xyz)
+
+plotb3(rf, sse=pdb)
+abline(v=100, col="gray", ylab="RMSF")
+```
+
+**Predicted Alignment Error for domains**
+
+```{r}
+library(jsonlite)
+
+pae_files <- list.files(path=results_dir,
+                        pattern=".*model.*\\.json",
+                        full.names = TRUE)
+pae1 <- read_json(pae_files[1],simplifyVector = TRUE)
+pae5 <- read_json(pae_files[5],simplifyVector = TRUE)
+
+attributes(pae1)
+
+```
+
+```{r}
+head(pae1$plddt) 
+```
+
+Max pae scores
+```{r}
+pae1$max_pae
+
+pae5$max_pae
+```
+
+Plotted residue-by-residue pae scores for model 1 and 5
+
+```{r}
+plot.dmat(pae1$pae, 
+          xlab="Residue Position (i)",
+          ylab="Residue Position (j)")
+```
+
+```{r}
+plot.dmat(pae5$pae, 
+          xlab="Residue Position (i)",
+          ylab="Residue Position (j)",
+          grid.col = "black",
+          zlim=c(0,30))
+```
+
+model 1 with range of 0-30
+
+```{r}
+plot.dmat(pae1$pae, 
+          xlab="Residue Position (i)",
+          ylab="Residue Position (j)",
+          grid.col = "black",
+          zlim=c(0,30))
+```
+
+**Residue conservation from alignment file**
+
+```{r}
+aln_file <- list.files(path=results_dir,
+                       pattern=".a3m$",
+                        full.names = TRUE)
+aln_file
+
+aln <- read.fasta(aln_file[1], to.upper = TRUE)
+
+# number of sequences 
+dim(aln$ali)
+```
+
+Socring residue conservation
+
+```{r}
+sim <- conserv(aln)
+plotb3(sim[1:99], sse=trim.pdb(pdb, chain="A"),
+       ylab="Conservation Score")
+```
+
+```{r}
+con <- consensus(aln, cutoff = 0.25)
+con$seq
+```
