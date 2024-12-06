@@ -1,2 +1,2 @@
 # bggn213_github
-Bioinformatics class
+This is for my UCSD bioinformatics class.
