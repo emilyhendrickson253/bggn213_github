@@ -1,0 +1,184 @@
+---
+title: "Class 7: Machine Learning 1"
+author: "Emily Hendrickson (PID: A69034780)"
+format: pdf
+---
+
+First, make a control dataset to run tests for clustering methods.
+
+To do this, I will use the *rnorm()* function.
+
+```{r}
+hist(rnorm(15000, mean = -3))
+```
+
+```{r}
+n=30
+x <- c(rnorm(n, mean = 3), rnorm(n, mean = -3))
+y <- rev(x)
+
+z <- cbind(x,y)
+z
+
+plot(z)
+```
+
+K-means Clustering
+
+To perform k-means clustering, use the function *kmeans()*
+
+```{r}
+km <- kmeans(z, 2)
+km
+plot(km$centers)
+```
+
+Print the cluster vector and add cluster centers
+
+```{r}
+km$cluster
+
+plot(z, col = km$cluster)
+points(km$centers, cex = 2, col = "blue", pch = 5)
+```
+
+Can you cluster our data in *z* into four clusters please?
+
+```{r}
+km4 <- kmeans(z, centers = 4)
+plot(z, col = km4$cluster)
+points(km4$centers, cex = 2, col = "blue", pch = 5)
+```
+Hierarchical Clustering
+
+The main function in base R for heirarchical clustering is *hclust()*
+
+Unlike k-means, I can't just lazily pass in my data. I have to do some work
+and make a distance matrix of my data.
+
+```{r}
+z.dist <- dist(z)
+z.hc <- hclust(z.dist)
+plot(z.hc)
+abline(h=10, col = "red")
+```
+
+To get my main clustering restult, I can cut my tree at a given height.
+
+```{r}
+hc.grps <- cutree(z.hc, h=10)
+hc.grps
+plot(z, col = hc.grps)
+```
+
+Principal Component Analysis - Class 7 Lab
+
+Q1
+
+```{r}
+url <- "https://tinyurl.com/UK-foods"
+x <- read.csv(url)
+dim(x)
+```
+
+Preview the first 6 rows
+
+```{r}
+head(x)
+```
+
+Note how the minus indexing works
+
+```{r}
+rownames(x) <- x[,1]
+x <- x[,-1]
+head(x)
+dim(x)
+```
+
+Alternative approach:
+
+```{r}
+x<- read.csv(url, row.names=1)
+head(x)
+```
+
+Q2: I prefer the secon
+
+
+Making a barplot
+
+
+```{r}
+barplot(as.matrix(x), beside = T, col = rainbow(nrow(x)))
+```
+
+
+Changing the argument beside = T to the default beside = F makes the following 
+plot
+
+```{r}
+barplot(as.matrix(x), beside = F, col = rainbow(nrow(x)))
+
+```
+
+Making pairs plot. 
+
+Q5 The code is generating plots of pairwise comparisons between each food 
+category for each country. X axis is the country in that row, and the Y axis is 
+the country in that column. If a dot falls on the diagonal, it means the value 
+for that dot is the same for each country.
+
+```{r}
+pairs(x, col=rainbow(nrow(x)), pch = 16)
+```
+
+Q6 
+
+The main function to do PCA in base R is called *prcomp()* To analyze our data 
+with PCA, we need to transpose it. 
+
+```{r}
+pca <- prcomp(t(x))
+summary(pca)
+```
+
+Let's see what's inside
+
+```{r}
+attributes(pca)
+```
+
+Q7
+
+Our main result figure by plotting PC1 vs PC2.
+
+```{r}
+plot(pca$x[,1], pca$x[,2], xlab="PC1", ylab="PC2", xlim=c(-270,500), col = c("black", "red", "blue", "darkgreen"), pch = 16)
+```
+
+With color
+
+```{r}
+plot(pca$x[,1], pca$x[,2], xlab="PC1", ylab="PC2", xlim=c(-270,500), cex = 0)
+text(pca$x[,1], pca$x[,2], colnames(x), col = c("black", "red", "blue", "green"))
+abline(v=0, col = "gray", lty = 2)
+abline(h=0, col = "gray", lty = 2)
+```
+
+Percent Variation
+
+
+Variable loadings with PC1 because it captures most of the variance (67%)
+
+```{r}
+par(mar=c(10,3,0.35,0))
+barplot(pca$rotation[,1], las=2)
+```
+
+
+```{r}
+par(mar=c(10,3,0.35,0))
+barplot(pca$rotation[,2], las=2)
+```
+
