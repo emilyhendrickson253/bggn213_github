@@ -1,0 +1,88 @@
+---
+title: "class06 Lab - Functions"
+author: "Emily Hendrickson (PID: A69034780)"
+format: pdf
+---
+
+**Functions!**
+
+*fname \<- function(arg1, arg2) { paste(arg1,arg2)}*
+
+
+My first function:
+
+```{r}
+add <- function(x,y) {
+  x + y
+}
+
+w <- c(1,3)
+
+v <- c(2,4)
+
+add(w,v)
+
+add(1,1)
+add(x=1, y=2)
+add(c(1,2,3), 3)
+```
+
+To set a default value:
+
+```{r}
+add <- function(x,y=5) {
+  x + y
+}
+
+w <- c(1,3)
+
+v <- c(2,4)
+
+add(w,v)
+
+add(1,1)
+add(x=1, y=2)
+add(c(1,2,3), 3)
+add(10)
+```
+
+**New Task:**
+To make a function *generatedna()* that makes a random nucleotide sequence
+
+```{r}
+
+generatedata <- function(length) {
+  bases <- c("A","T","C","G")
+  dna_sequence <- sample(x=bases, size = length, replace = TRUE)
+  return(dna_sequence)
+}
+
+generatedata(5)
+```
+
+To make a function *generateprotein()* that makes a random amino acid sequence. 
+
+```{r}
+generateprotein <- function(length) {
+  residues <- unique(bio3d::aa.table$aa1)
+  aa_sequence <- paste(sample(x=residues, size = length, replace = TRUE), 
+                       collapse = "")
+  return(aa_sequence)
+}
+
+# Generate a sequence of 5 amino acids
+generateprotein(5)
+```
+
+To generate many sequences:
+
+generate protein sequences of lengths 6 to 12 in fasta format
+
+```{r}
+sequences <- sapply(6:12, generateprotein)
+
+cat(paste(">id.length", 6:12, "\n", sequences, sep=""), sep="\n")
+```
+
+
+
